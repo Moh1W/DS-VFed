@@ -47,6 +47,27 @@ class Active():
 
         return y_onehot
 
+    def ccfd_oue_perturb(self):
+        y_onehot=self.one_hot()
+        p=float(math.exp(self.epsilon/2)/(math.exp(self.epsilon/2)+1))
+        # q=float(1/(math.exp(self.epsilon/2)+1))
+        for i in range(y_onehot.shape[0]):
+            for j in range(y_onehot.shape[1]):
+                value=y_onehot[i][j]
+                if value==1:
+                    if torch.rand(1)<p:
+                        y_onehot[i][j]=1
+                    else:
+                        y_onehot[i][j]=0
+                if value==0:
+                    if torch.rand(1)<p:
+                        y_onehot[i][j]=0
+                    else:
+                        y_onehot[i][j]=1
+
+        return y_onehot
+
+
     def modify(self,y_perturb):
         y_zero=torch.zeros(y_perturb.shape)
         row_max=torch.argmax(y_perturb,dim=1)
@@ -113,9 +134,6 @@ class Passive():
         sorted_indices = torch.argsort(feature_values)
         sorted_feature_values = torch.gather(feature_values, 0, sorted_indices)
         sorted_labels = y_onehot[sorted_indices]
-
-#         best_split_point = None
-#         min_gini = float('inf')
         indices = torch.nonzero(sorted_feature_values)
         if indices.numel()==0:
             return self.gini(sorted_labels)
@@ -126,22 +144,46 @@ class Passive():
             return (len(left_labels) / len(y_onehot)) * self.gini(left_labels) + \
                      (len(right_labels) / len(y_onehot)) * self.gini(right_labels)
 
+    def ccfd_continuous_gini_impurity(self, feature_values, y_onehot):
+        sorted_indices = torch.argsort(feature_values)
+        sorted_feature_values = torch.gather(feature_values, 0, sorted_indices)
+        sorted_labels = y_onehot[sorted_indices]
 
+        best_split_point = None
+        min_gini = float('inf')
 
-    def gini_impurity(self,y_onehot):
+        for i in range(sorted_feature_values.shape[0]):
+            if i==0:
+                continue
+            split_point = (sorted_feature_values[i - 1] + sorted_feature_values[i]) / 2
+            left_labels = sorted_labels[:i, :]
+            right_labels = sorted_labels[i:, :]
+            gini_i = (len(left_labels) / len(y_onehot)) * self.gini(left_labels) + \
+                     (len(right_labels) / len(y_onehot)) * self.gini(right_labels)
+
+            if gini_i < min_gini:
+                min_gini = gini_i
+                best_split_point = split_point
+
+        return best_split_point, min_gini
+
+    def gini_impurity(self,y_onehot,dataset):
         gini_list=[]
         feature_num=self.data.shape[1]
         for i in range(feature_num):
             data_i=self.data[:,i]
             if self.is_c[i]:
-                min_gini=self.continuous_gini_impurity(data_i,y_onehot)
+                if dataset == 'ccfd':
+                    min_gini= self.ccfd_continuous_gini_impurity(data_i, y_onehot)
+                else:
+                    min_gini = self.continuous_gini_impurity(data_i, y_onehot)
                 gini_list.append(min_gini)
             else:
                 continue
         return gini_list
-    def initialize(self,k,y_onehot):
+    def initialize(self,k,y_onehot,dataset):
 
-        gini_list=self.gini_impurity(y_onehot)
+        gini_list=self.gini_impurity(y_onehot, dataset)
         mu_list=[]
         for i in range(len(gini_list)):
             mu_list.append(k/gini_list[i])

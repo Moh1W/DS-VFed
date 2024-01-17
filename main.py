@@ -132,13 +132,13 @@ if __name__ == '__main__':
         is_cf = torch.ones(train_2.shape[1], dtype=torch.bool)
         partyB = Active(train_2, train_2, is_cf, labels, parsed['num_classes'], parsed['epsilon'])
 
-        y_onehot_p = partyB.oue_perturb()
+        y_onehot_p = partyB.ccfd_oue_perturb()
         y_onehot = partyB.modify(y_onehot_p)
 
         is_cf_A = torch.ones(train_1.shape[1], dtype=torch.bool)
         partyA = Passive(train_1, train_1, is_cf_A)
 
-        ginilist_A, mulist_A = partyA.initialize(0.5, y_onehot)
+        ginilist_A, mulist_A = partyA.initialize(0.5, y_onehot, dataset)
         mulist_B = torch.tensor(mulist_A)
     else:
         is_cf = torch.ones(raw_train_2.shape[1],dtype=torch.bool)
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         is_cf_A = torch.ones(raw_train_1.shape[1],dtype=torch.bool)
         partyA = Passive(raw_train_1,train_1,is_cf_A)
 
-        ginilist_A, mulist_A = partyA.initialize(parsed['coefficient'], y_onehot)
+        ginilist_A, mulist_A = partyA.initialize(parsed['coefficient'], y_onehot, dataset)
 
     # DataLoader
     train_A = DataLoader(train_1, batch_size=parsed['batch_size'],drop_last=True)
