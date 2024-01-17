@@ -54,7 +54,7 @@ if __name__ == '__main__':
     elif dataset == 'emnist':
         raw_train = datasets.EMNIST(root='em', train=True, transform=transform1, download=True, split='letters')
         raw_val = datasets.EMNIST(root='em', train=False, transform=transform1, download=True, split='letters')
-        # # 标准化后的数据
+        
         trainset = datasets.EMNIST(root='em', train=True, transform=transform3, download=True, split='letters')
         valset = datasets.EMNIST(root='em', train=False, transform=transform3, download=True, split='letters')
 
